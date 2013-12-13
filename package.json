@@ -1,0 +1,32 @@
+{
+  "name": "node-synapse",
+  "version": "0.0.0",
+  "description": "A transparent service discovery framework for connecting an SOA",
+  "main": "index.js",
+  "scripts": {
+    "test": "node-modules/.bin/mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hden/node-synapse.git"
+  },
+  "keywords": [
+    "SOA"
+  ],
+  "author": "hden <haokang.den@gmail.com>",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "9e359f49fb476a1a3071acd95fef7e6d6319701f",
+  "dependencies": {
+    "underscore": "~1.5.2",
+    "q": "~0.9.7",
+    "debug": "~0.7.4",
+    "haproxy": "0.0.4",
+    "aws-sdk": "~2.0.0-rc2",
+    "msgpack": "~0.2.1"
+  },
+  "devDependencies": {
+    "chai": "~1.8.1",
+    "mocha": "~1.15.1"
+  }
+}

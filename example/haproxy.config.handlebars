@@ -1,0 +1,6 @@
+{{#each roles}}
+backend {{role}}
+  balance roundrobin
+  {{#each server}}server {{name}} {{address}} weight 1 maxconn 512
+  {{/each}}
+{{/each}}

@@ -29,6 +29,8 @@ class Parser extends stream.Transform
     line = line.toString encoding
     if line.match 'EventMember'
       @push exports.members()
+    else
+      @push Q.when line
     do done
 
 execPromise = (command) ->
@@ -58,7 +60,13 @@ exports.start = (options = {}) ->
   flags = _.map options, (v, k) ->
     "-#{k} #{v} "
 
-  Q.when exec "serf agent #{flags.join('')}"
+  {stdout, stdin, stderr} = exec "serf agent #{flags.join('')}"
+
+  readline = new Readline()
+  stdout.pipe(readline).pipe(parser).on 'data', (promise) ->
+      promise.then (d) ->
+        print JSON.stringify d, null, 4
+  Q.when
 
 exports.members = (options = '-status alive') ->
   print 'members'
@@ -81,11 +89,8 @@ exports.event = (event = 'test', payload = '') ->
   payload = JSON.stringify payload unless _.isString payload
   execPromise "serf event #{event} #{payload}"
 
-exports.start().done ({stdout}) ->
-  readline = new Readline()
-  parser = new Parser()
-  stdout.pipe(readline).pipe(parser).on 'data', (promise) ->
-    promise.then (d) ->
-      print JSON.stringify d, null, 4
-
-setTimeout exports.leave, 3000
+exports.startAndMonitor = ->
+  exports.start().then ({stdout}) ->
+    readline = new Readline()
+    parser = new Parser()
+    stdout.pipe(readline).pipe(parser)

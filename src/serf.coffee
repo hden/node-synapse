@@ -1,14 +1,22 @@
 'use strict'
 
-{exec} = require 'child_process'
-stream = require 'stream'
+{exec}  = require 'child_process'
+stream  = require 'stream'
 
-_      = require 'underscore'
-debug  = require 'debug'
-Q      = require 'q'
+_       = require 'underscore'
+{Bacon} = require 'baconjs'
+Q       = require 'q'
 
-print  = debug 'serf'
+{debug} = require "#{__dirname}/utils"
 
+print   = debug 'serf'
+
+preset =
+  node: 'agent-two'
+  role: 'minion'
+  bind: '127.0.0.1:7947'
+  'rpc-addr': '127.0.0.1:7374'
+  # encrypt: 'yvaS3kB4u9t164qpsOYitQ=='
 
 class Readline extends stream.Transform
   constructor: ->
@@ -20,58 +28,29 @@ class Readline extends stream.Transform
     lines.forEach @push.bind @
     do done
 
-class Parser extends stream.Transform
-  constructor: ->
-    super
-    @_readableState.objectMode = true
-    @_writableState.objectMode = true
-  _transform: (line, encoding = 'utf-8', done) =>
-    line = line.toString encoding
-    if line.match 'EventMember'
-      @push exports.members()
-    else
-      @push Q.when line
-    do done
-
-execPromise = (command) ->
-  deferred = do Q.defer
-  exec command, (err, stdout, stderr) ->
-    if err?
-      print "node err: #{err}"
-      deferred.reject err
-    if stderr.length > 0
-      print "stderr: #{stderr}"
-      deferred.reject stderr
-
-    print "stdout: #{stdout}"
-    deferred.resolve stdout
-
-  deferred.promise
+execBacon = (command = '') ->
+  Bacon.fromNodeCallback exec, command
 
 exports.start = (options = {}) ->
-  preset =
-    node: 'nobody'
-    role: 'minion'
-    bind: '0.0.0.0:7946'
-    encrypt: 'yvaS3kB4u9t164qpsOYitQ=='
-
   _.defaults options, preset
 
   flags = _.map options, (v, k) ->
-    "-#{k} #{v} "
+    "-#{k} #{v}"
 
-  {stdout, stdin, stderr} = exec "serf agent #{flags.join('')}"
+  {stdout, stderr} = exec "serf agent #{flags.join(' ')}"
 
-  readline = new Readline()
-  stdout.pipe(readline).pipe(parser).on 'data', (promise) ->
-      promise.then (d) ->
-        print JSON.stringify d, null, 4
-  Q.when
+  stream = stdout.pipe new Readline {encoding: 'utf-8'}
+
+  Bacon.fromEventTarget(stream, 'data')
+  .filter (line) ->
+    line.match 'Received event: member-'
+  .flatMapLatest (line) ->
+    exports.members()
+  .skipDuplicates(_.isEqual)
 
 exports.members = (options = '-status alive') ->
   print 'members'
-  deferred = do Q.defer
-  execPromise("serf members #{options}").then (stdout) ->
+  execBacon("serf members -rpc-addr #{preset['rpc-addr']} #{options}").map (stdout) ->
     _.chain(stdout.split('\n'))
     .compact()
     .map (line) ->
@@ -80,17 +59,15 @@ exports.members = (options = '-status alive') ->
     .value()
 
 exports.leave = ->
-  execPromise 'serf leave'
+  execBacon 'serf leave'
 
 exports.join = (address = '') ->
-  execPromise "serf join #{address}"
+  execBacon "serf join #{address}"
 
 exports.event = (event = 'test', payload = '') ->
   payload = JSON.stringify payload unless _.isString payload
-  execPromise "serf event #{event} #{payload}"
+  execBacon "serf event #{event} #{payload}"
 
-exports.startAndMonitor = ->
-  exports.start().then ({stdout}) ->
-    readline = new Readline()
-    parser = new Parser()
-    stdout.pipe(readline).pipe(parser)
+# exports.start().onValues ->
+#   print arguments
+#   print '~~~~~~~'

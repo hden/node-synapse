@@ -3,11 +3,8 @@
 _          = require 'underscore'
 handlebars = require 'handlebars'
 program    = require 'commander'
-HAProxy    = require 'haproxy'
-dnode      = require 'dnode'
-Q          = require 'q'
 
-{start}    = require "#{__dirname}/haproxy"
+haproxy    = require "#{__dirname}/haproxy"
 {debug}    = require "#{__dirname}/utils"
 serf       = require "#{__dirname}/serf"
 
@@ -15,20 +12,28 @@ print      = debug 'main'
 
 program
   .version('0.0.0')
+  .option('-c --controller <module>', 'Controller', require)
   .option('-t --template <.handlebars>', 'HAProxy config template in handlebars', require)
   .parse(process.argv)
 
 # Default Settings
-program.template ?= require "#{__dirname}/../example/haproxy.config"
+program.controller ?= require "#{__dirname}/../example/controller"
+program.template   ?= require "#{__dirname}/../example/haproxy.config"
 
+throw new Error 'invalid controller' unless _.isFunction program.controller
 throw new Error 'invalid template' unless _.isFunction program.template
 
-handlers =
-  print: print
-
-server = dnode(handlers).listen("#{__dirname}/../synapse.sock")
+# serf
+#   .start()
+#   .flatMap(program.controller)
+#   .flatMap(program.template)
+#   .debounceImmediate(5 * 1000) # 5 seconds
+#   .skipDuplicates(_.isEqual)
+#   .flatMap(haproxy.pipe)
+#   .assign(print)
 
 data = {
+  socket: 'path-to-socket'
   roles: [
     {
       "role": "apache",
@@ -57,4 +62,4 @@ data = {
   ]
 }
 
-# print program.template data
+console.log program.template data

@@ -15,9 +15,10 @@ exports.debug = (domain = 'unnamed') ->
       print d
     else
       try
-        print JSON.stringify d
+        print JSON.stringify d, null, 4
       catch error
         print 'circular structure!'
+    d
 
 exports.execPromise = (command) ->
   deferred = do Q.defer

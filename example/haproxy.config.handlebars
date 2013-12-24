@@ -1,7 +1,8 @@
 global
   maxconn 256
   # Exposes the stat socket so we can manage the proxy through synapse
-  stats socket {{socket}} level admin
+  # This line is required for synape to properly control haproxy
+  stats socket /tmp/haproxy.sock level admin
 
 defaults
     mode http
@@ -17,11 +18,6 @@ listen stats
     stats enable
     stats uri /
     stats refresh 2s
-
-listen http-in
-    bind *:8080
-    balance roundrobin
-    option http-server-close
 
 {{#each roles}}
 backend {{role}}

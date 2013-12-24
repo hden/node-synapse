@@ -19,7 +19,7 @@ preset =
 exports.start = (options = {}) ->
   _.defaults options, preset
 
-  haproxy = new HAProxy "#{__dirname}/../tmp/haproxy.sock", options
+  haproxy = new HAProxy '/tmp/haproxy.sock', options
 
   # kill haproxy when SIGTERM or SIGINT
   terminate = (msg) ->
@@ -62,21 +62,3 @@ exports.start = (options = {}) ->
     else
       print 'haproxy not started yet'
       do start
-
-idx = 0
-
-f = exports.start()
-
-g = ->
-  file = fs.readFileSync("#{__dirname}/../tmp/haproxy.config", 'utf-8') + """
-
-  listen http-innn#{idx++}
-      bind *:8080
-      balance roundrobin
-      option http-server-close
-
-  """
-  print 'time to reload'
-  f(file).assign print
-
-setInterval g, 10000

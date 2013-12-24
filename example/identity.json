@@ -1,0 +1,6 @@
+{
+  "node": "agent-two",
+  "role": "minion",
+  "bind": "127.0.0.1:7947",
+  "encrypt": "yvaS3kB4u9t164qpsOYitQ=="
+}

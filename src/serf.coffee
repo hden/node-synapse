@@ -16,7 +16,16 @@ preset =
   role: 'minion'
   bind: '127.0.0.1:7947'
   'rpc-addr': '127.0.0.1:7374'
-  # encrypt: 'yvaS3kB4u9t164qpsOYitQ=='
+
+parameters = [
+  'node'
+  'role'
+  'bind'
+  'encrypt'
+  'event-handler'
+  'join'
+  'snapshot'
+]
 
 class Readline extends stream.Transform
   constructor: ->
@@ -32,10 +41,11 @@ execBacon = (command = '') ->
   Bacon.fromNodeCallback exec, command
 
 exports.start = (options = {}) ->
-  _.defaults options, preset
 
-  flags = _.map options, (v, k) ->
-    "-#{k} #{v}"
+  preset[k] = v for k, v of options when k in parameters
+
+  flags = _.map preset, (v, k) ->
+    "-#{k}=#{v}"
 
   {stdout, stderr} = exec "serf agent #{flags.join(' ')}"
 
@@ -67,7 +77,3 @@ exports.join = (address = '') ->
 exports.event = (event = 'test', payload = '') ->
   payload = JSON.stringify payload unless _.isString payload
   execBacon "serf event #{event} #{payload}"
-
-# exports.start().onValues ->
-#   print arguments
-#   print '~~~~~~~'

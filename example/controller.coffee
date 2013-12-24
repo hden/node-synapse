@@ -3,8 +3,9 @@
 _ = require 'underscore'
 
 module.exports = (listOfCurrentMembers) ->
-  _.chain(listOfCurrentMembers)
+  roles = _.chain(listOfCurrentMembers)
   .groupBy('role')
   .map (server, role) ->
     {server, role}
   .value()
+  {roles}
